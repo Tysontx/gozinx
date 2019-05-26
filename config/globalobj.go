@@ -7,11 +7,14 @@ import (
 
 // 全局配置文件的类
 type GlobalObj struct {
-	Host            string // 当前监听的 IP
-	Port            int    // 当前监听的 post
-	Name            string // 当前 zinx server 名字
-	Version         string // 当前框架版本号
-	MaxPageageCount uint32 // 每次 read 一次的最大长度
+	Host             string // 当前监听的 IP
+	Port             int    // 当前监听的 post
+	Name             string // 当前 zinx server 名字
+	Version          string // 当前框架版本号
+	MaxPageageCount  uint32 // 每次 read 一次的最大长度
+	WorkerPoolSize   uint32 // 工作池 worker 数量
+	MaxWorkerTaskLen uint32 // 每个 worker 对应的消息对象，允许缓存最大任务 request 数量
+	MaxConn          uint32 // 最大连接数
 }
 
 // 定义一个全局对外的配置对象
@@ -39,6 +42,8 @@ func init() {
 		Name:            "my gozinx app",
 		Version:         "v0.4",
 		MaxPageageCount: 512,
+		WorkerPoolSize:  10,
+		MaxConn:         1000,
 	}
 	// 加载配置文件
 	GlobalObject.LoadConfig()
