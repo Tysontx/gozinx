@@ -7,6 +7,7 @@ import (
 	"io"
 	"errors"
 	"gozinx/config"
+	"sync"
 )
 
 // 具体的 TCP 连接模块
@@ -28,6 +29,10 @@ type Connection struct {
 	writerExitChan chan bool
 	// 当前连接属于哪一个 Server 创建
 	server ziface.IServer
+	// 当前连接模块所具备的一些属性集合
+	property map[string]interface{}
+	// 保护当前 property 的锁
+	propertyLock sync.RWMutex
 }
 
 // 初始化连接方法
@@ -42,6 +47,7 @@ func NewConnection(server ziface.IServer, conn *net.TCPConn, connId uint32, MsgH
 		msgChan: make(chan []byte), // 初始化 write 和 Read 之间通讯的 chan
 		writerExitChan: make(chan bool),
 		server: server,
+		property: make(map[string]interface{}),
 	}
 	// 当连接已经创建成功，则添加到连接管理器中
 	server.GetConnMgr().Add(c)
@@ -194,4 +200,34 @@ func (c *Connection) Send(msgId uint32, msgData []byte) error {
 	c.msgChan <- binaryMsg
 
 	return nil
+}
+
+// 设置属性
+func (c *Connection)SetProperty(key string, value interface{}) {
+	// 加锁
+	c.propertyLock.Lock()
+	defer c.propertyLock.Unlock()
+	// 添加一个连接的属性
+	c.property[key] = value
+}
+// 获取属性
+func (c *Connection)GetProperty(key string) (interface{}, error) {
+	// 加读锁
+	c.propertyLock.RLock()
+	defer c.propertyLock.RUnlock()
+	// 读取属性
+	value, ok := c.property[key]
+	if ok {
+		return value, nil
+	} else {
+		return nil, errors.New("NoFound Property:" + key)
+	}
+}
+// 删除属性
+func (c *Connection)RemoveProperty(key string) {
+	// 加锁
+	c.propertyLock.Lock()
+	defer c.propertyLock.Unlock()
+	// 删除属性
+	delete(c.property, key)
 }
